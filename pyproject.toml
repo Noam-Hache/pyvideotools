@@ -1,0 +1,10 @@
+[project]
+name = "pyvideotools"
+version = "0.1.0"
+description = "Video metric and encoding tools"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "setuptools>=84.0.0",
+    "vsjetpack>=2.2.4",
+]
