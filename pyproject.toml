@@ -6,5 +6,5 @@ readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
     "setuptools>=84.0.0",
-    "vsjetpack>=2.2.4",
+    "vsjetpack[source]>=2.2.4",
 ]

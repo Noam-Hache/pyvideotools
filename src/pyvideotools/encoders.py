@@ -3,6 +3,11 @@ import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
+import vapoursynth as vs
+
+core = vs.core
+core.max_cache_size = 1024
+
 
 class CommandBuilder(ABC):
     _encoder: str
@@ -46,21 +51,12 @@ class CommandBuilder(ABC):
     def passes(self, _passes: int) -> None:
         self._passes = _passes
 
-    def run(self) -> None:
-        if hasattr(self, "_passes"):
-            commands: list[list[str]] = self.get_2pass_commands()
-        else:
-            commands: list[list[str]] = [self.get_command()]
-
-        for command in commands:
-            try:
-                subprocess.run(command, text=True, check=True)
-            except subprocess.CalledProcessError as e:
-                print(f"Encoder encountered an error:\n{e}")
-                sys.exit(1)
-
     def encoder(self, path: str):
         self._encoder = path
+
+    @abstractmethod
+    def run(self) -> None:
+        """"""
 
     @abstractmethod
     def preset(self, _preset: str):
@@ -76,12 +72,6 @@ class CommandBuilder(ABC):
 
 
 class x264CommandBuilder(CommandBuilder):
-    _input_path: Path
-    _output_path: Path
-
-    _bitrate: str
-    _preset: str
-
     def __init__(self) -> None:
         super().__init__()
 
@@ -147,8 +137,23 @@ class x264CommandBuilder(CommandBuilder):
 
         return [pass1, pass2]
 
+    def run(self) -> None:
+        if hasattr(self, "_passes"):
+            commands: list[list[str]] = self.get_2pass_commands()
+        else:
+            commands: list[list[str]] = [self.get_command()]
+
+        for command in commands:
+            try:
+                subprocess.run(command, text=True, check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Encoder encountered an error:\n{e}")
+                sys.exit(1)
+
 
 class SVTAV1CommandBuilder(CommandBuilder):
+    _vs_input: vs.VideoNode
+
     def __init__(self) -> None:
         super().__init__()
 
@@ -162,7 +167,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         # Options
         if hasattr(self, "_bitrate"):
-            command += ["--tbr", self._bitrate]
+            command += ["--tbr", self._bitrate, "--rc", "1"]
 
         if hasattr(self, "_crf"):
             command += ["--crf", self._crf]
@@ -181,8 +186,34 @@ class SVTAV1CommandBuilder(CommandBuilder):
         # Input
         if not self.input_path:
             raise Exception()
-        command += ["-i", str(self.input_path)]
+        command += ["-i", "-"]
 
         return command
 
     def get_2pass_commands(self) -> list[list[str]]: ...
+
+    def _load_vs_source(self):
+        self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
+            source=self.input_path, cache=0
+        )
+
+    def run(self):
+        self._load_vs_source()
+
+        # TODO make sure the source was loaded correctly
+
+        if hasattr(self, "_passes"):
+            commands: list[list[str]] = self.get_2pass_commands()
+        else:
+            commands: list[list[str]] = [self.get_command()]
+
+        for command in commands:
+            try:
+                process = subprocess.Popen(command, stdin=subprocess.PIPE)
+
+                self._vs_input.output(process.stdin, y4m=True)  # pyright: ignore[reportArgumentType]
+                process.wait()
+
+            except subprocess.CalledProcessError as e:
+                print(f"Encoder encountered an error:\n{e}")
+                sys.exit(1)
