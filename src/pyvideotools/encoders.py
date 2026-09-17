@@ -40,6 +40,7 @@ class CommandBuilder(ABC):
         self.output_path = output_path
 
     def bitrate(self, _bitrate: str) -> None:
+        """Sets bitrate in kbps"""
         self._bitrate = _bitrate
 
     def crf(self, _crf: str):
@@ -49,6 +50,8 @@ class CommandBuilder(ABC):
         self._tune = _tune
 
     def passes(self, _passes: int) -> None:
+        if _passes > 2:
+            raise ValueError("Pass count cannot exceed 2.")
         self._passes = _passes
 
     def encoder(self, path: str):
@@ -72,10 +75,12 @@ class CommandBuilder(ABC):
 
 
 class x264CommandBuilder(CommandBuilder):
-    def __init__(self) -> None:
-        super().__init__()
+    _encoder: str = "x264"
 
-        self._encoder = "x264"
+    _stats_files: tuple[Path, Path] = (
+        Path("x264_2pass.log"),
+        Path("x264_2pass.log.mbtree"),
+    )
 
     def preset(self, _preset: str):
         x264_presets = (
@@ -149,6 +154,9 @@ class x264CommandBuilder(CommandBuilder):
             except subprocess.CalledProcessError as e:
                 print(f"Encoder encountered an error:\n{e}")
                 sys.exit(1)
+
+        for file in self._stats_files:
+            file.unlink()
 
 
 class SVTAV1CommandBuilder(CommandBuilder):
