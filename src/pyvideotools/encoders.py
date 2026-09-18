@@ -25,7 +25,9 @@ class CommandBuilder(ABC):
         input_path = Path(path)
 
         if not input_path.exists() or not input_path.is_file():
-            raise FileNotFoundError("The input file does not exist.")
+            raise FileNotFoundError(
+                "The input file does not exist."
+            )  # TODO Add file path in err msg
 
         self.input_path = input_path
 
@@ -35,7 +37,7 @@ class CommandBuilder(ABC):
         if output_path.exists() and not overwrite:
             raise FileExistsError(
                 "The output file already exists. Use the overwrite flag."
-            )
+            )  # TODO Add the path in err msg
 
         self.output_path = output_path
 
@@ -70,7 +72,7 @@ class CommandBuilder(ABC):
         """"""
 
     @abstractmethod
-    def get_2pass_commands(self) -> list[list[str]]:
+    def validate_command(self) -> bool:
         """"""
 
 
@@ -120,12 +122,12 @@ class x264CommandBuilder(CommandBuilder):
 
         # Output file
         if not self.output_path:
-            raise Exception()
+            raise Exception()  # TODO Add the correct err
         command += ["-o", str(self.output_path)]
 
         # Input file
         if not self.input_path:
-            raise Exception()
+            raise Exception()  # TODO Add the correct err
         command += [str(self.input_path)]
 
         return command
@@ -141,6 +143,9 @@ class x264CommandBuilder(CommandBuilder):
         pass2.insert(2, "2")
 
         return [pass1, pass2]
+
+    def validate_command(self) -> bool:
+        raise NotImplementedError()  # TODO Implement
 
     def run(self) -> None:
         if hasattr(self, "_passes"):
@@ -168,6 +173,20 @@ class SVTAV1CommandBuilder(CommandBuilder):
         self._encoder = "SvtAv1EncApp"
 
     def preset(self, _preset: str):
+        if _preset not in (
+            "0",
+            "1",
+            "2",
+            "3",
+            "4",
+            "5",
+            "6",
+            "7",
+            "8",
+            "9",
+            "10",
+        ):  # TODO Put true presets
+            raise ValueError()  # TODO Error message
         self._preset = _preset
 
     def get_command(self) -> list[str]:
@@ -188,24 +207,40 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         # Output
         if not self.output_path:
-            raise Exception()
+            raise Exception()  # TODO correct err
         command += ["-b", str(self.output_path)]
 
         # Input
         if not self.input_path:
-            raise Exception()
+            raise Exception()  # TODO correct err
         command += ["-i", "-"]
 
         return command
-
-    def get_2pass_commands(self) -> list[list[str]]: ...
 
     def _load_vs_source(self):
         self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
             source=self.input_path, cache=0
         )
 
+    def validate_command(self) -> bool:
+        raise NotImplementedError  # TODO Implement
+
+    def get_2pass_commands(self) -> list[list[str]]:
+        command = self.get_command()
+        command.insert(1, "--pass")
+
+        pass1 = command.copy()
+        pass1.insert(2, "1")
+
+        pass2 = command.copy()
+        pass2.insert(2, "2")
+
+        return [pass1, pass2]
+
     def run(self):
+        # if not self.validate_command():
+        #     raise Exception  # TODO Add correct err
+
         self._load_vs_source()
 
         # TODO make sure the source was loaded correctly
