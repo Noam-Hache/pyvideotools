@@ -44,13 +44,28 @@ print(metric.scores_median)
 ```
 
 ### Encoding examples
+
+SVT-AV1 CRF Encoding
 ```python
 from src.pyvideotools import encoders
 
 cmd = encoders.SVTAV1CommandBuilder()
 cmd.input("input.mkv")
-cmd.preset("10")
-cmd.bitrate("2000")
+cmd.preset("4")
+cmd.crf(30)
+cmd.output("output.mkv", overwrite=True)
+cmd.run()
+```
+
+x264 2-pass target bitrate
+```python
+from src.pyvideotools import encoders
+
+cmd = encoders.x264CommandBuilder()
+cmd.input("input.mkv")
+cmd.preset("faster")
+cmd.bitrate(682)
+cmd.passes(2)
 cmd.output("output.mkv", overwrite=True)
 cmd.run()
 ```
@@ -58,9 +73,9 @@ cmd.run()
 
 ## Supported Implementations
 
-| Metric | CPU | GPU |
-| --- | --- | --- |
+| Metric      | CPU                    | GPU   |
+| ----------- | ---------------------- | ----- |
 | SSIMULACRA2 | VS-ZIP / Turbo-Metrics | VSHIP |
-| XPSNR | VS-ZIP / FFmpeg | - |
-| Butteraugli | - | VSHIP |
-| CVVDP | - | VSHIP |
+| XPSNR       | VS-ZIP / FFmpeg        | -     |
+| Butteraugli | -                      | VSHIP |
+| CVVDP       | -                      | VSHIP |
