@@ -1,3 +1,5 @@
+# Note in the get_command() methods, i used 'command = command + [...]' and not 'command += [...]' because my static type checker doesn't work with the second way.
+
 import subprocess
 import sys
 from abc import ABC, abstractmethod
@@ -15,8 +17,8 @@ class CommandBuilder(ABC):
     _input_path: Path
     _output_path: Path
 
-    _bitrate: str
-    _crf: str
+    _bitrate: int
+    _crf: float
     _tune: str
     _preset: str
     _passes: int
@@ -41,11 +43,15 @@ class CommandBuilder(ABC):
 
         self.output_path = output_path
 
-    def bitrate(self, _bitrate: str) -> None:
-        """Sets bitrate in kbps"""
+    def bitrate(self, _bitrate: int) -> None:
+        """Sets the bitrate in kbps"""
+        if not isinstance(_bitrate, int):
+            raise TypeError(f"_bitrate should be type int not {type(_bitrate)}")
+
         self._bitrate = _bitrate
 
-    def crf(self, _crf: str):
+    def crf(self, _crf: float):
+        """Sets the CRF"""
         self._crf = _crf
 
     def tune(self, _tune: str):
@@ -104,31 +110,36 @@ class x264CommandBuilder(CommandBuilder):
             raise ValueError("Invalid preset")
         self._preset = _preset
 
+    def crf(self, _crf: float):
+        """Sets the CRF rounded to nearest int"""
+        super().crf(_crf)
+        self._crf = round(self._crf)
+
     def get_command(self) -> list[str]:
         command: list[str] = [self._encoder]
 
         # Options
         if hasattr(self, "_bitrate"):
-            command += ["--bitrate", self._bitrate]
+            command = command + ["--bitrate", str(self._bitrate)]
 
         if hasattr(self, "_crf"):
-            command += ["--crf", self._crf]
+            command = command + ["--crf", str(self._crf)]
 
         if hasattr(self, "_tune"):
-            command += ["--tune", self._tune]
+            command = command + ["--tune", self._tune]
 
         if hasattr(self, "_preset"):
-            command += ["--preset", self._preset]
+            command = command + ["--preset", self._preset]
 
         # Output file
         if not self.output_path:
             raise Exception()  # TODO Add the correct err
-        command += ["-o", str(self.output_path)]
+        command = command + ["-o", str(self.output_path)]
 
         # Input file
         if not self.input_path:
             raise Exception()  # TODO Add the correct err
-        command += [str(self.input_path)]
+        command = command + [str(self.input_path)]
 
         return command
 
@@ -189,31 +200,36 @@ class SVTAV1CommandBuilder(CommandBuilder):
             raise ValueError()  # TODO Error message
         self._preset = _preset
 
+    def crf(self, _crf: float):
+        """Sets the CRF rounded to nearest int"""
+        super().crf(_crf)
+        self._crf = round(self._crf)
+
     def get_command(self) -> list[str]:
         command: list[str] = [self._encoder]
 
         # Options
         if hasattr(self, "_bitrate"):
-            command += ["--tbr", self._bitrate, "--rc", "1"]
+            command = command + ["--tbr", str(self._bitrate), "--rc", "1"]
 
         if hasattr(self, "_crf"):
-            command += ["--crf", self._crf]
+            command = command + ["--crf", str(self._crf)]
 
         if hasattr(self, "_tune"):
-            command += ["--tune", self._tune]
+            command = command + ["--tune", self._tune]
 
         if hasattr(self, "_preset"):
-            command += ["--preset", self._preset]
+            command = command + ["--preset", self._preset]
 
         # Output
         if not self.output_path:
             raise Exception()  # TODO correct err
-        command += ["-b", str(self.output_path)]
+        command = command + ["-b", str(self.output_path)]
 
         # Input
         if not self.input_path:
             raise Exception()  # TODO correct err
-        command += ["-i", "-"]
+        command = command + ["-i", "-"]
 
         return command
 
