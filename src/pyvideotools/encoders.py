@@ -27,9 +27,7 @@ class CommandBuilder(ABC):
         input_path = Path(path)
 
         if not input_path.exists() or not input_path.is_file():
-            raise FileNotFoundError(
-                "The input file does not exist."
-            )  # TODO Add file path in err msg
+            raise FileNotFoundError(f"The input file does not exist.\n{input_path}")
 
         self.input_path = input_path
 
@@ -38,8 +36,8 @@ class CommandBuilder(ABC):
 
         if output_path.exists() and not overwrite:
             raise FileExistsError(
-                "The output file already exists. Use the overwrite flag."
-            )  # TODO Add the path in err msg
+                f"The output file already exists. Use the overwrite flag.\n{output_path}"
+            )
 
         self.output_path = output_path
 
@@ -133,13 +131,13 @@ class x264CommandBuilder(CommandBuilder):
 
         # Output file
         if not self.output_path:
-            raise Exception()  # TODO Add the correct err
-        command = command + ["-o", str(self.output_path)]
+            raise ValueError("Output path was not set.")
+        command += ["-o", str(self.output_path)]
 
         # Input file
         if not self.input_path:
-            raise Exception()  # TODO Add the correct err
-        command = command + [str(self.input_path)]
+            raise ValueError("Input path was not set")
+        command += [str(self.input_path)]
 
         return command
 
@@ -184,7 +182,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
         self._encoder = "SvtAv1EncApp"
 
     def preset(self, _preset: str):
-        if _preset not in (
+        svtav1_presets = (
             "0",
             "1",
             "2",
@@ -196,8 +194,12 @@ class SVTAV1CommandBuilder(CommandBuilder):
             "8",
             "9",
             "10",
-        ):  # TODO Put true presets
-            raise ValueError()  # TODO Error message
+            "11",
+            "12",
+            "13",
+        )
+        if _preset not in svtav1_presets:
+            raise ValueError(f"'{_preset}' not in {', '.join(svtav1_presets)}")
         self._preset = _preset
 
     def crf(self, _crf: float):
@@ -223,13 +225,13 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         # Output
         if not self.output_path:
-            raise Exception()  # TODO correct err
-        command = command + ["-b", str(self.output_path)]
+            raise ValueError("Output path was not set.")
+        command += ["-b", str(self.output_path)]
 
         # Input
         if not self.input_path:
-            raise Exception()  # TODO correct err
-        command = command + ["-i", "-"]
+            raise ValueError("Input path was not set.")
+        command += ["-i", "-"]
 
         return command
 
@@ -259,7 +261,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         self._load_vs_source()
 
-        # TODO make sure the source was loaded correctly
+        # TODO make sure the source was loaded correctly ?
 
         if hasattr(self, "_passes"):
             commands: list[list[str]] = self.get_2pass_commands()
