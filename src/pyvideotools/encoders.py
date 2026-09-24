@@ -5,7 +5,7 @@ import sys
 from abc import ABC, abstractmethod
 from pathlib import Path
 
-import vapoursynth as vs
+import vapoursynth as vs  # pyright: ignore[reportMissingTypeStubs]
 
 core = vs.core
 core.max_cache_size = 1024
@@ -24,6 +24,7 @@ class CommandBuilder(ABC):
     _passes: int
 
     def input(self, path: str) -> None:
+        """Validates and sets the input file"""
         input_path = Path(path)
 
         if not input_path.exists() or not input_path.is_file():
@@ -32,6 +33,7 @@ class CommandBuilder(ABC):
         self.input_path = input_path
 
     def output(self, path: str, overwrite: bool = False) -> None:
+        """Validates and sets the output file"""
         output_path = Path(path)
 
         if output_path.exists() and not overwrite:
@@ -53,31 +55,34 @@ class CommandBuilder(ABC):
         self._crf = _crf
 
     def tune(self, _tune: str):
+        """Sets the tune"""
         self._tune = _tune
 
     def passes(self, _passes: int) -> None:
+        """Validates and sets the pass count"""
         if _passes > 2:
             raise ValueError("Pass count cannot exceed 2.")
         self._passes = _passes
 
     def encoder(self, path: str):
+        """Sets the encoder executable path"""
         self._encoder = path
 
     @abstractmethod
     def run(self) -> None:
-        """"""
+        """Runs the command"""
 
     @abstractmethod
     def preset(self, _preset: str):
-        """"""
+        """Sets the bitrate"""
 
     @abstractmethod
     def get_command(self) -> list[str]:
-        """"""
+        """Returns the command"""
 
     @abstractmethod
     def validate_command(self) -> bool:
-        """"""
+        """Validates the command"""
 
 
 class x264CommandBuilder(CommandBuilder):
@@ -89,6 +94,7 @@ class x264CommandBuilder(CommandBuilder):
     )
 
     def preset(self, _preset: str):
+        """Validates and sets the preset"""
         x264_presets = (
             "ultrafast",
             "superfast",
@@ -114,6 +120,7 @@ class x264CommandBuilder(CommandBuilder):
         self._crf = round(self._crf)
 
     def get_command(self) -> list[str]:
+        """Returns a valid command"""
         command: list[str] = [self._encoder]
 
         # Options
@@ -142,6 +149,7 @@ class x264CommandBuilder(CommandBuilder):
         return command
 
     def get_2pass_commands(self) -> list[list[str]]:
+        """Returns 2 valid commands : first pass, second pass"""
         command = self.get_command()
         command.insert(1, "--pass")
 
@@ -154,9 +162,11 @@ class x264CommandBuilder(CommandBuilder):
         return [pass1, pass2]
 
     def validate_command(self) -> bool:
+        """Validates the command"""
         raise NotImplementedError()  # TODO Implement
 
     def run(self) -> None:
+        """Runs the command and deletes stats file"""
         if hasattr(self, "_passes"):
             commands: list[list[str]] = self.get_2pass_commands()
         else:
@@ -182,6 +192,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
         self._encoder = "SvtAv1EncApp"
 
     def preset(self, _preset: str):
+        """Validates and sets the preset"""
         svtav1_presets = (
             "0",
             "1",
@@ -208,6 +219,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
         self._crf = round(self._crf)
 
     def get_command(self) -> list[str]:
+        """Returns a valid command"""
         command: list[str] = [self._encoder]
 
         # Options
@@ -236,14 +248,17 @@ class SVTAV1CommandBuilder(CommandBuilder):
         return command
 
     def _load_vs_source(self):
+        """Loads the source file in a VS object"""
         self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
             source=self.input_path, cache=0
         )
 
     def validate_command(self) -> bool:
+        """Validates the command"""
         raise NotImplementedError  # TODO Implement
 
     def get_2pass_commands(self) -> list[list[str]]:
+        """Returns 2 valid commands : first pass, second pass"""
         command = self.get_command()
         command.insert(1, "--pass")
 
@@ -256,6 +271,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
         return [pass1, pass2]
 
     def run(self):
+        """Runs the command"""
         # if not self.validate_command():
         #     raise Exception  # TODO Add correct err
 
