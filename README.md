@@ -28,8 +28,9 @@ x264 and SVT-AV1 bindings.
 ### Quality metrics examples
 
 ```python
-from src.pyvideotools import metrics
 from pathlib import Path
+
+from pyvideotools import metrics
 
 metric = metrics.VSzipSSIMULACRA2(
     source=Path("source.mkv"),
@@ -47,26 +48,26 @@ print(metric.scores_median)
 
 SVT-AV1 CRF Encoding
 ```python
-from src.pyvideotools import encoders
+from pyvideotools.encoders import AV1
 
-cmd = encoders.SVTAV1CommandBuilder()
+cmd = AV1.SVTAV1CommandBuilder()
 cmd.input("input.mkv")
 cmd.preset("4")
 cmd.crf(30)
-cmd.output("output.mkv", overwrite=True)
+cmd.output("output.mkv")
 cmd.run()
 ```
 
 x264 2-pass target bitrate
 ```python
-from src.pyvideotools import encoders
+from pyvideotools.encoders import H264
 
-cmd = encoders.x264CommandBuilder()
-cmd.input("input.mkv")
+cmd = H264.x264CommandBuilder()
+cmd.input("input.mp4")
 cmd.preset("faster")
 cmd.bitrate(682)
 cmd.passes(2)
-cmd.output("output.mkv", overwrite=True)
+cmd.output("target.mkv", overwrite=True)
 cmd.run()
 ```
 

@@ -1,3 +1,4 @@
-from EncodersCommandBuilders import SVTAV1, x264
+from pyvideotools.EncodersCommandBuilders import AV1
+from pyvideotools.EncodersCommandBuilders import H264
 
-__all__ = ["SVTAV1", "x264"]
+__all__ = ["AV1", "H264"]
