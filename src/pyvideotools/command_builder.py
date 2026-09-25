@@ -14,6 +14,11 @@ class CommandBuilder(ABC):
     _preset: str
     _passes: int
 
+    additional_parameters: list[str]
+
+    def __init__(self) -> None:
+        self.additional_parameters = []
+
     def input(self, path: str) -> None:
         """Validates and sets the input file"""
         input_path = Path(path)
@@ -58,6 +63,12 @@ class CommandBuilder(ABC):
     def encoder(self, path: str):
         """Sets the encoder executable path"""
         self._encoder = path
+
+    def other(self, parameter: str, value: str = ""):
+        if not parameter:
+            raise ValueError()
+
+        self.additional_parameters += [parameter, value]
 
     @abstractmethod
     def run(self) -> None:

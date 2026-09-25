@@ -4,7 +4,8 @@ import subprocess
 import sys
 
 import vapoursynth as vs  # pyright: ignore[reportMissingTypeStubs]
-from command_builder import CommandBuilder
+
+from ..command_builder import CommandBuilder
 
 core = vs.core
 core.max_cache_size = 1024
@@ -61,6 +62,9 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         if hasattr(self, "_preset"):
             command = command + ["--preset", self._preset]
+
+        if len(self.additional_parameters) > 0:
+            command = command + self.additional_parameters
 
         # Output
         if not self.output_path:
