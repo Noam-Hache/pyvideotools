@@ -7,6 +7,7 @@ class CommandBuilder(ABC):
 
     _input_path: Path
     _output_path: Path
+    _is_input_vpy: bool = False
 
     _bitrate: int
     _crf: float
@@ -14,12 +15,12 @@ class CommandBuilder(ABC):
     _preset: str
     _passes: int
 
-    additional_parameters: list[str]
+    _additional_parameters: list[str]
 
     def __init__(self) -> None:
-        self.additional_parameters = []
+        self._additional_parameters = []
 
-    def input(self, path: str) -> None:
+    def input(self, path: str, is_input_vpy: bool = False) -> None:
         """Validates and sets the input file"""
         input_path = Path(path)
 
@@ -27,6 +28,7 @@ class CommandBuilder(ABC):
             raise FileNotFoundError(f"The input file does not exist.\n{input_path}")
 
         self.input_path = input_path
+        self._is_input_vpy = is_input_vpy
 
     def output(self, path: str, overwrite: bool = False) -> None:
         """Validates and sets the output file"""
@@ -68,7 +70,7 @@ class CommandBuilder(ABC):
         if not parameter:
             raise ValueError()
 
-        self.additional_parameters += [parameter, value]
+        self._additional_parameters += [parameter, value]
 
     @abstractmethod
     def run(self) -> None:

@@ -58,8 +58,8 @@ class x264CommandBuilder(CommandBuilder):
         if hasattr(self, "_preset"):
             command = command + ["--preset", self._preset]
 
-        if len(self.additional_parameters) > 0:
-            command = command + self.additional_parameters
+        if len(self._additional_parameters) > 0:
+            command = command + self._additional_parameters
 
         # Output file
         if not self.output_path:

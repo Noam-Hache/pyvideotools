@@ -63,8 +63,8 @@ class SVTAV1CommandBuilder(CommandBuilder):
         if hasattr(self, "_preset"):
             command = command + ["--preset", self._preset]
 
-        if len(self.additional_parameters) > 0:
-            command = command + self.additional_parameters
+        if len(self._additional_parameters) > 0:
+            command = command + self._additional_parameters
 
         # Output
         if not self.output_path:
@@ -80,9 +80,14 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
     def _load_vs_source(self):
         """Loads the source file in a VS object"""
-        self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
-            source=self.input_path, cache=0
-        )
+        if self._is_input_vpy:
+            vpy_vars = {}
+            exec(open(self.input_path).read(), globals(), vpy_vars)
+            self._vs_input = vpy_vars["src"]
+        else:
+            self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
+                source=self.input_path, cache=0
+            )
 
     def validate_command(self) -> bool:
         """Validates the command"""
@@ -120,7 +125,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
                 process = subprocess.Popen(command, stdin=subprocess.PIPE)
 
                 self._vs_input.output(process.stdin, y4m=True)  # pyright: ignore[reportArgumentType]
-                process.wait()
+                # process.wait()
 
             except subprocess.CalledProcessError as e:
                 print(f"Encoder encountered an error:\n{e}")
