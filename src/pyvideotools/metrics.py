@@ -7,11 +7,10 @@ import re
 import subprocess
 import time
 from abc import ABC, abstractmethod
+from collections.abc import Callable
 from math import exp
 from pathlib import Path
 from statistics import mean, median, quantiles, stdev
-from typing import Self, Literal
-from collections.abc import Callable
 
 import vapoursynth as vs
 
@@ -33,8 +32,8 @@ def get_metric_class(
         metric_name
     )
     if not metric_class:
-        raise Exception(
-            f"Metric in current configuration is not available:\n{metric_name} {metric_device} {framework}"
+        raise ValueError(
+            f"Metric in current configuration is not available:\n{metric_name} {metric_device} {metric_framework}"
         )
 
     return metric_class
@@ -90,8 +89,11 @@ class Metric(ABC):
 
     def save_scores(self, metric: str):
         """Saves the Metric scores in a json format"""
-        with open(self.json_path, "w", encoding="utf-8") as file:
-            json.dump({"skip": self.skip, metric: self.scores}, file)
+        if self.json_path is not None:
+            with open(self.json_path, "w", encoding="utf-8") as file:
+                json.dump({"skip": self.skip, metric: self.scores}, file)
+        else:
+            raise ValueError("metric json path was not set") # TODO Set default json path to CWD/temp to remove the raise
 
     @staticmethod
     def get_metric(json_path: Path, metric: str) -> tuple[list[float], int]:
@@ -153,6 +155,12 @@ class Metric(ABC):
 class VSMetrics(Metric):
     """VS Metrics class"""
 
+    source_clip: vs.VideoNode
+    encoded_clip: vs.VideoNode
+
+    cut_source_clip: vs.VideoNode
+    cut_encoded_clip: vs.VideoNode
+
     def __init__(
         self,
         source: Path,
@@ -163,11 +171,6 @@ class VSMetrics(Metric):
         save=False,
     ) -> None:
         super().__init__(source, distorted, skip, callback, json_path, save)
-        self.source_clip = None
-        self.encoded_clip = None
-
-        self.cut_source_clip = None
-        self.cut_encoded_clip = None
 
         self.load_clips()
         self.cut_clips()
@@ -411,7 +414,7 @@ class FFmpegXPSNR(Metric):
             "-i",
             str(self.distorted),
             "-lavfi",
-            f"xpsnr=stats_file={str(self.xpsnr_tmp_stats_path)}",
+            f"xpsnr=stats_file={self.xpsnr_tmp_stats_path!s}",
             "-f",
             "null",
             NULL_DEVICE,
