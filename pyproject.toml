@@ -1,21 +1,31 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
 [project]
 name = "pyvideotools"
-version = "0.2.1"
+version = "0.2.2"
 description = "Video metric and encoding tools"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "setuptools>=84.0.0",
     "vsjetpack[source]>=2.2.4",
 ]
+
 authors = [
-  { name="Noam Hache", email="noam.hache@gmail.com" },
+    { name = "Noam Hache", email = "noam.hache@gmail.com" },
 ]
 
 classifiers = [
-    "Programming Language :: Python :: 3",
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
+
 license = "MIT"
 license-files = ["LICEN[CS]E*"]
 
