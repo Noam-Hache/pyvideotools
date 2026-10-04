@@ -8,6 +8,7 @@ class CommandBuilder(ABC):
     _input_path: Path
     _output_path: Path
     _is_input_vpy: bool = False
+    _use_default_vpy: bool = True
 
     _bitrate: int
     _crf: float
@@ -20,7 +21,12 @@ class CommandBuilder(ABC):
     def __init__(self) -> None:
         self._additional_parameters = []
 
-    def input(self, path: str, is_input_vpy: bool = False) -> None:
+    def input(
+        self,
+        path: str,
+        is_input_vpy: bool = False,
+        use_default_vpy: bool = True,
+    ) -> None:
         """Validates and sets the input file"""
         input_path = Path(path)
 
@@ -29,6 +35,7 @@ class CommandBuilder(ABC):
 
         self.input_path = input_path
         self._is_input_vpy = is_input_vpy
+        self._use_default_vpy = use_default_vpy
 
     def output(self, path: str, overwrite: bool = False) -> None:
         """Validates and sets the output file"""
@@ -71,6 +78,9 @@ class CommandBuilder(ABC):
             raise ValueError()
 
         self._additional_parameters += [parameter, value]
+
+    def get_command_str(self):
+        return " ".join(self.get_command())
 
     @abstractmethod
     def run(self) -> None:

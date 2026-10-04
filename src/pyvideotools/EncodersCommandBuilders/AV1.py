@@ -10,6 +10,24 @@ from ..command_builder import CommandBuilder
 core = vs.core
 core.max_cache_size = 1024
 
+DEFAULT_VPY = """from vstools import vs, core, depth, DitherType
+core.max_cache_size = 1024
+src = core.ffms2.Source(source=r"<input>", cachefile=r"cache.ffindex")
+bit_to_format = {
+    8: vs.YUV420P8,
+    10: vs.YUV420P10,
+    12: vs.YUV420P12
+}
+bit_to_dither = {
+    8: DitherType.NONE,
+    10: DitherType.NONE,
+    12: DitherType.RANDOM
+}
+fmt = bit_to_format.get(src.format.bits_per_sample, vs.YUV420P16)
+dt = bit_to_dither.get(src.format.bits_per_sample, DitherType.RANDOM)
+src = depth(src.resize.Bilinear(format=fmt), 10, dither_type=dt)
+src.set_output()"""
+
 
 class SVTAV1CommandBuilder(CommandBuilder):
     _vs_input: vs.VideoNode
@@ -46,10 +64,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
         super().crf(_crf)
         self._crf = round(self._crf)
 
-    def get_command(self) -> list[str]:
-        """Returns a valid command"""
-        command: list[str] = [self._encoder]
-
+    def _cmd_add_generic_parameters(self, command):
         # Options
         if hasattr(self, "_bitrate"):
             command = command + ["--tbr", str(self._bitrate), "--rc", "1"]
@@ -66,6 +81,14 @@ class SVTAV1CommandBuilder(CommandBuilder):
         if len(self._additional_parameters) > 0:
             command = command + self._additional_parameters
 
+        return command
+
+    def get_command(self) -> list[str]:
+        """Returns a valid command"""
+        command: list[str] = [self._encoder]
+
+        command = self._cmd_add_generic_parameters(command)
+
         # Output
         if not self.output_path:
             raise ValueError("Output path was not set.")
@@ -78,11 +101,21 @@ class SVTAV1CommandBuilder(CommandBuilder):
 
         return command
 
+    def _write_default_vpy(self):
+        with open("script.vpy", "w") as f:
+            f.write(DEFAULT_VPY.replace("<input>", str(self.input_path)))
+
     def _load_vs_source(self):
         """Loads the source file in a VS object"""
         if self._is_input_vpy:
+            if self._use_default_vpy:
+                self._write_default_vpy()
+                vpy_file = "script.vpy"
+            else:
+                vpy_file = self.input_path
+
             vpy_vars = {}
-            exec(open(self.input_path).read(), globals(), vpy_vars)
+            exec(open(vpy_file).read(), globals(), vpy_vars)
             self._vs_input = vpy_vars["src"]
         else:
             self._vs_input: vs.VideoNode = core.lsmas.LWLibavSource(  # type: ignore
@@ -123,10 +156,39 @@ class SVTAV1CommandBuilder(CommandBuilder):
         for command in commands:
             try:
                 process = subprocess.Popen(command, stdin=subprocess.PIPE)
-
                 self._vs_input.output(process.stdin, y4m=True)  # pyright: ignore[reportArgumentType]
                 # process.wait()
 
             except subprocess.CalledProcessError as e:
                 print(f"Encoder encountered an error:\n{e}")
                 sys.exit(1)
+
+
+class SVTAV1EssentialCommandBuilder(SVTAV1CommandBuilder):
+    _speed: str
+    _quality: str
+
+    def speed(self, _speed: str):
+        """Validates and sets the speed"""
+        speeds = ("slower", "slow", "medium", "fast", "faster")
+        if _speed not in speeds:
+            f"'{_speed}' not in {', '.join(speeds)}"
+        self._speed = _speed
+
+    def quality(self, _quality: str):
+        """Validates and sets the quality"""
+        qualities = ("higher", "high", "medium", "low", "lower")
+        if _quality not in qualities:
+            raise ValueError(f"'{_quality}' not in {', '.join(qualities)}")
+        self._quality = _quality
+
+    def _cmd_add_generic_parameters(self, command):
+        command = super()._cmd_add_generic_parameters(command)
+
+        if hasattr(self, "_speed"):
+            command = command + ["--speed", self._speed]
+
+        if hasattr(self, "_quality"):
+            command = command + ["--quality", self._quality]
+
+        return command
