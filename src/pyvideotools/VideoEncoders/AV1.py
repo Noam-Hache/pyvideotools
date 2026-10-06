@@ -5,7 +5,7 @@ import sys
 
 import vapoursynth as vs  # pyright: ignore[reportMissingTypeStubs]
 
-from ..command_builder import CommandBuilder
+from ..encoders import VideoEncoder
 
 core = vs.core
 core.max_cache_size = 1024
@@ -29,7 +29,7 @@ src = depth(src.resize.Bilinear(format=fmt), 10, dither_type=dt)
 src.set_output()"""
 
 
-class SVTAV1CommandBuilder(CommandBuilder):
+class SVTAV1(VideoEncoder):
     _vs_input: vs.VideoNode
 
     def __init__(self) -> None:
@@ -164,7 +164,7 @@ class SVTAV1CommandBuilder(CommandBuilder):
                 sys.exit(1)
 
 
-class SVTAV1EssentialCommandBuilder(SVTAV1CommandBuilder):
+class SVTAV1Essential(SVTAV1):
     _speed: str
     _quality: str
 

@@ -4,10 +4,10 @@ import subprocess
 import sys
 from pathlib import Path
 
-from ..command_builder import CommandBuilder
+from ..encoders import VideoEncoder
 
 
-class x264CommandBuilder(CommandBuilder):
+class x264(VideoEncoder):
     _encoder: str = "x264"
 
     _stats_files: tuple[Path, Path] = (
